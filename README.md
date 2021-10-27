@@ -2,9 +2,13 @@
 
 A library for automatically scaling a codebase by dynamically replacing class methods with containerized APIs during runtime.
 
+
+
 ## Prerequisites
 
 Currently requires Docker to be running on the machine running your application. In the future, I plan to support remote docker instances and Kubernetes clusters.
+
+
 
 ## Usage
 
@@ -26,6 +30,8 @@ If you would like to make sure all containers are terminated when the host close
 app.TerminateMethodContainersOnExit();
 ```
 
+
+
 ## How it works
 
 When you mark a method to be containerized, a lot happens behind the scenes. 
@@ -35,3 +41,13 @@ When you mark a method to be containerized, a lot happens behind the scenes.
 3. A docker image is built with the aforementioned API project and shallow assembly inside
 4. A container is built and started containing the isolated method environment
 5. The original method is replaced with a proxy method which calls the respective API
+
+
+
+## Future Plans
+
+- Add support for building of Dockerfiles remotely
+- Docker Swarm
+- Kubernetes
+- Load monitoring / Multiple instances
+- Analytics / Monitoring

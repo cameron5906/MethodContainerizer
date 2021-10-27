@@ -1,4 +1,4 @@
-{
+﻿{
   "iisSettings": {
     "windowsAuthentication": false,
     "anonymousAuthentication": true,
@@ -17,7 +17,7 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
     },
-    "KubeRPC.Sample": {
+    "MethodContainerizer.Sample": {
       "commandName": "Project",
       "launchUrl": "swagger",
       "environmentVariables": {

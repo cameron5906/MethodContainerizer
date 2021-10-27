@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.OpenApi.Models;
 
 namespace MethodContainerizer.Sample
 {
@@ -25,10 +24,6 @@ namespace MethodContainerizer.Sample
         {
 
             services.AddControllers();
-            services.AddSwaggerGen(c =>
-            {
-                c.SwaggerDoc("v1", new OpenApiInfo { Title = "KubeRPC.Sample", Version = "v1" });
-            });
 
             services
                 .AddSingleton<UserService>()
@@ -46,8 +41,6 @@ namespace MethodContainerizer.Sample
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
-                app.UseSwagger();
-                app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "KubeRPC.Sample v1"));
             }
 
             app.UseHttpsRedirection();
