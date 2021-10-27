@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Platforms>AnyCPU;x86</Platforms>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="5.6.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\KubeRPC.Docker\MethodContainerizer.Docker.csproj" />
+    <ProjectReference Include="..\KubeRPC\MethodContainerizer.csproj" />
+    <ProjectReference Include="..\MethodContainerizer.Docker\MethodContainerizer.Docker.csproj" />
+    <ProjectReference Include="..\MethodContainerizer\MethodContainerizer.csproj" />
+  </ItemGroup>
+
+</Project>
