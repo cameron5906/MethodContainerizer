@@ -11,10 +11,12 @@ namespace MethodContainerizer.Docker
 {
     internal class DockerManager : IOrchestrator
     {
+        private readonly IDictionary<string, int> _containerNames;
         private readonly DockerClient _dockerClient;
 
         public DockerManager()
         {
+            _containerNames = new Dictionary<string, int>();
             _dockerClient = new DockerClientConfiguration()
                 .CreateClient();
         }
@@ -31,10 +33,19 @@ namespace MethodContainerizer.Docker
 
             var hostPort = (int)Math.Floor(6000.0 + (new Random().Next(0, 3000)));
 
+            var instanceNumber = _containerNames.ContainsKey(imageName)
+                ? _containerNames[imageName] + 1
+                : 1;
+
+            if (!_containerNames.ContainsKey(imageName))
+                _containerNames.Add(imageName, instanceNumber);
+            else
+                _containerNames[imageName] = instanceNumber;
+            
             var container = await _dockerClient.Containers.CreateContainerAsync(new CreateContainerParameters
             {
                 Image = imageName,
-                Name = $"{imageName}-inst-1",
+                Name = $"{imageName}-inst-{instanceNumber}",
                 ExposedPorts = new Dictionary<string, EmptyStruct>
                 {
                     { "5959", new EmptyStruct() }
@@ -43,7 +54,7 @@ namespace MethodContainerizer.Docker
                 {
                     PortBindings = new Dictionary<string, IList<PortBinding>>
                     {
-                        { "5959", new List<PortBinding> { new PortBinding { HostPort = hostPort.ToString() } } }
+                        { "5959", new List<PortBinding> { new() { HostPort = hostPort.ToString() } } }
                     }
                 }
             });
