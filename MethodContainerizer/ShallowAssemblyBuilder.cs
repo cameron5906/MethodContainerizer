@@ -103,7 +103,7 @@ namespace MethodContainerizer
 
             // The below code generates a Program class and constructs a Main method that calls the root method that is being exported
             var methodParams = methodInfo.GetParameters();
-            var prog = module.DefineType("KubeRPC.Program", TypeAttributes.Public | TypeAttributes.Class, null);
+            var prog = module.DefineType("MethodContainerizer.Program", TypeAttributes.Public | TypeAttributes.Class, null);
             var mainFunc = prog.DefineMethod(
                 "Main", 
                 MethodAttributes.Public, 

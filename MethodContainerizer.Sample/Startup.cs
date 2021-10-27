@@ -30,7 +30,11 @@ namespace MethodContainerizer.Sample
                 .AddSingleton<PostService>()
                 .AddTransient<UserRepository>()
                 .AddTransient<PostRepository>()
-                .ContainerizeMethod<UserService>(x => x.CreateUser(default), 1)
+                .ContainerizeMethod<UserService>(x => x.CreateUser(default), opts => 
+                    opts
+                        .SetMinimumAvailable(3)
+                        .UseCustomBearerToken("mytesttoken")
+                )
                 .UseDockerOrchestration()
                 .BuildContainers();
         }

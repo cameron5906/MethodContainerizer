@@ -4,15 +4,18 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Reflection;
 using System.Runtime.Serialization;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace MethodContainerizer
 {
-    public class MethodProxyManager
+    public sealed class MethodProxyManager
     {
         private static IOrchestrator _orchestrator;
-        private static Dictionary<string, IList<string>> _remoteMethodIdMap = new Dictionary<string, IList<string>>();
-        private static Dictionary<string, IList<int>> _remoteMethodPortMap = new Dictionary<string, IList<int>>();
+        private static readonly Dictionary<string, List<string>> RemoteMethodIdMap = new();
+        private static readonly Dictionary<string, List<int>> RemoteMethodPortMap = new();
 
         public static void SetOrchestrator(IOrchestrator orchestrator)
         {
@@ -27,23 +30,23 @@ namespace MethodContainerizer
         /// <param name="port">Which port the isolated method API is running on</param>
         public static void AddRemoteMethod(string id, string methodName, int port)
         {
-            if (!_remoteMethodIdMap.ContainsKey(methodName))
-                _remoteMethodIdMap.Add(methodName, new[] { id });
+            if (!RemoteMethodIdMap.ContainsKey(methodName))
+                RemoteMethodIdMap.Add(methodName, new List<string> { id });
             else
-                _remoteMethodIdMap[methodName].Add(id);
+                RemoteMethodIdMap[methodName].Add(id);
 
-            if (!_remoteMethodPortMap.ContainsKey(methodName))
-                _remoteMethodPortMap.Add(methodName, new[] { port });
+            if (!RemoteMethodPortMap.ContainsKey(methodName))
+                RemoteMethodPortMap.Add(methodName, new List<int> { port });
             else
-                _remoteMethodPortMap[methodName].Add(port);
+                RemoteMethodPortMap[methodName].Add(port);
         }
 
         /// <summary>
         /// Orders all running APIs to shut down
         /// </summary>
-        public static void ShutdownAPIs()
+        internal static void ShutdownAllApis()
         {
-            foreach(var openMethod in _remoteMethodIdMap)
+            foreach(var openMethod in RemoteMethodIdMap)
             {
                 foreach(var containerId in openMethod.Value)
                 {
@@ -68,32 +71,85 @@ namespace MethodContainerizer
                 .SelectMany(x => x.GetTypes())
                 .FirstOrDefault(x => x.FullName == declaringTypeName)?
                 .GetMethod(methodName);
-
-            if (_remoteMethodPortMap.ContainsKey(methodName))
+            
+            // Get the method containerization options
+            var containerizationOptions = InjectionManager.GetMethodOptions(method);
+            
+            // Check to see if we need to create a new container for each method call
+            if (containerizationOptions.CreateAsNeeded)
             {
-                var port = _remoteMethodPortMap[methodName][0];
-                using var httpClient = new HttpClient();
+                var (containerId, port) = InjectionManager.BuildContainer(method, !containerizationOptions.IsOpen,
+                    containerizationOptions.CustomBearer);
+                Thread.Sleep(2000); //TODO: Find a way to see when the API comes up (notification?)
                 
-                httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
-                httpClient.DefaultRequestHeaders.Add("User-Agent", "kuberpc-client");
+                // If it's a void method, run it in a new Task and don't worry about returning a value
+                if (method.ReturnType == typeof(void))
+                {
+                    Task.Run(() =>
+                    {
+                        CallRemoteMethod(method, port, args);
+                        
+                        // Destroy the container once a response is received
+                        _orchestrator.Shutdown(containerId).GetAwaiter().GetResult();
+                    });
+                    
+                    return null;
+                }
 
-                var result = httpClient.PostAsync(
-                    $"http://127.0.0.1:{port}",
-                    new StringContent(
-                        JsonConvert.SerializeObject(
-                            args.Skip(1).Select(x => 
-                                x
-                            )
-                        )
-                    )
-                ).GetAwaiter().GetResult();
+                var result = CallRemoteMethod(method, port, args);
+                    
+                // Destroy the container once a response is received
+                _orchestrator.Shutdown(containerId).GetAwaiter().GetResult();
 
-                var respStr = result.Content.ReadAsStringAsync().GetAwaiter().GetResult();
-                return JsonConvert.DeserializeObject(respStr, method.ReturnType);
+                return result;
             }
+            
+            // Otherwise, get one of the running instances and call it
+            if (RemoteMethodPortMap.ContainsKey(methodName))
+            {
+                var port = RemoteMethodPortMap[methodName][0];
+
+                // If its a void method, run the request in a new Task and don't worry about returning a value
+                if (method?.ReturnType == typeof(void))
+                {
+                    Task.Run(() => CallRemoteMethod(method, port, args));
+                    return null;
+                }
+
+                return CallRemoteMethod(method, port, args);
+            }   
 
             var instance = FormatterServices.GetUninitializedObject(method.DeclaringType);
             return method.Invoke(instance, args.Skip(1).ToArray()); // TODO: I think this is an infinite loop. Need to store the original method...
+        }
+
+        private static object CallRemoteMethod(MethodInfo method, int port, object[] args)
+        {
+            var containerizationOptions = InjectionManager.GetMethodOptions(method);
+            
+            using var httpClient = new HttpClient();
+                
+            httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
+            httpClient.DefaultRequestHeaders.Add("User-Agent", "methodcontainerizer");
+
+            if (!containerizationOptions.IsOpen)
+            {
+                httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {containerizationOptions.CustomBearer}");
+            }
+
+            var result = httpClient.PostAsync(
+                $"http://127.0.0.1:{port}",
+                new StringContent(
+                    JsonConvert.SerializeObject(
+                        args.Skip(1).Select(x => 
+                            x
+                        )
+                    )
+                )
+            ).GetAwaiter().GetResult();
+
+            var respStr = result.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+            return JsonConvert.DeserializeObject(respStr, method.ReturnType);
         }
     }
 }

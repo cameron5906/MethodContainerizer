@@ -1,4 +1,5 @@
-﻿using MethodContainerizer.Sample.Models;
+﻿using System.Linq;
+using MethodContainerizer.Sample.Models;
 using MethodContainerizer.Sample.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
