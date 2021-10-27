@@ -26,7 +26,7 @@ services
 
 
 
-If you would like to make sure all containers are terminated when the host closes, add the following:
+##### If you would like to make sure all containers are terminated when the host closes, add the following:
 
 ```csharp
 app.TerminateMethodContainersOnExit();
@@ -34,7 +34,7 @@ app.TerminateMethodContainersOnExit();
 
 
 
-By default, method containers use authentication with a randomly generated Bearer token. You may disable authentication altogether:
+##### By default, method containers use authentication with a randomly generated Bearer token. You may disable authentication altogether:
 
 ```csharp
 services
@@ -45,7 +45,7 @@ services
 
 
 
-Or, to change the bearer token:
+##### Or, to change the bearer token:
 
 ```csharp
 services
@@ -56,7 +56,7 @@ services
 
 
 
-To set up a minimum amount of containers per each method for load balancing purposes:
+##### To set up a minimum amount of containers per each method for load balancing purposes:
 
 ```csharp
 services
@@ -67,7 +67,7 @@ services
 
 
 
-Or, if you want each invocation of the method to create a new container that is destroyed once the method returns:
+##### Or, if you want each invocation of the method to create a new container that is destroyed once the method returns:
 
 ```csharp
 services
