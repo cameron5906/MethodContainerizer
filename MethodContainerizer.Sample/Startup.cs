@@ -1,5 +1,6 @@
 using MethodContainerizer.Docker.Extensions;
 using MethodContainerizer.Extensions;
+using MethodContainerizer.Kubernetes.Extensions;
 using MethodContainerizer.Sample.Repositories;
 using MethodContainerizer.Sample.Services;
 using Microsoft.AspNetCore.Builder;
@@ -35,7 +36,7 @@ namespace MethodContainerizer.Sample
                         .SetMinimumAvailable(3)
                         .UseCustomBearerToken("mytesttoken")
                 )
-                .UseDockerOrchestration()
+                .UseKubernetesOrchestration("", "")
                 .BuildContainers();
         }
 

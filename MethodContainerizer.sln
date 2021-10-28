@@ -9,6 +9,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MethodContainerizer.Sample"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MethodContainerizer.Docker", "MethodContainerizer.Docker\MethodContainerizer.Docker.csproj", "{3A8B97C6-8165-4EE9-B060-B5A46EA71447}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MethodContainerizer.Kubernetes", "MethodContainerizer.Kubernetes\MethodContainerizer.Kubernetes.csproj", "{9ACA61E1-3120-4D62-A2B0-BB9981F9340A}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -41,6 +43,14 @@ Global
 		{3A8B97C6-8165-4EE9-B060-B5A46EA71447}.Release|Any CPU.Build.0 = Release|Any CPU
 		{3A8B97C6-8165-4EE9-B060-B5A46EA71447}.Release|x86.ActiveCfg = Release|Any CPU
 		{3A8B97C6-8165-4EE9-B060-B5A46EA71447}.Release|x86.Build.0 = Release|Any CPU
+		{9ACA61E1-3120-4D62-A2B0-BB9981F9340A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9ACA61E1-3120-4D62-A2B0-BB9981F9340A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9ACA61E1-3120-4D62-A2B0-BB9981F9340A}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{9ACA61E1-3120-4D62-A2B0-BB9981F9340A}.Debug|x86.Build.0 = Debug|Any CPU
+		{9ACA61E1-3120-4D62-A2B0-BB9981F9340A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9ACA61E1-3120-4D62-A2B0-BB9981F9340A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9ACA61E1-3120-4D62-A2B0-BB9981F9340A}.Release|x86.ActiveCfg = Release|Any CPU
+		{9ACA61E1-3120-4D62-A2B0-BB9981F9340A}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
