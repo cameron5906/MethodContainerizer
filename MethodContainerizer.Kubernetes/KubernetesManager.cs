@@ -21,6 +21,7 @@ namespace MethodContainerizer.Kubernetes
         private readonly IDictionary<string, int> _containerNames;
         private readonly DockerClient _dockerClient;
         private readonly k8s.Kubernetes _kubernetesClient;
+        private V1Pod _buildPod;
 
         public KubernetesManager(string k8sConnectionString, string containerRegistry)
         {
@@ -35,7 +36,7 @@ namespace MethodContainerizer.Kubernetes
 
         public async Task PrepareDockerDaemon()
         {
-            var pod = await _kubernetesClient.CreateNamespacedPodAsync(new V1Pod
+            _buildPod = await _kubernetesClient.CreateNamespacedPodAsync(new V1Pod
             {
                 ApiVersion = "v1",
                 Kind = "Pod",
@@ -62,7 +63,7 @@ namespace MethodContainerizer.Kubernetes
             }, "default");
 
             var eventWaiter = new SemaphoreSlim(0, 1);
-            var watcher = await _kubernetesClient.WatchNamespacedPodAsync(pod.Name(), pod.Namespace());
+            var watcher = await _kubernetesClient.WatchNamespacedPodAsync(_buildPod.Name(), _buildPod.Namespace());
             watcher.OnEvent += (a, b) =>
             {
                 if (b.Status.Phase == "Running")
@@ -73,18 +74,13 @@ namespace MethodContainerizer.Kubernetes
             };
 
             await eventWaiter.WaitAsync();
-
-            var shell = await _kubernetesClient.WebSocketNamespacedPodExecAsync(pod.Name(), pod.Namespace(), "/bin/sh",
-                pod.Spec.Containers.First().Name, true, true, true, true);
-
-            var cmd = Encoding.UTF8.GetBytes("echo \"hey it works\" > /home/yo.txt");
-            await shell.SendAsync(cmd, WebSocketMessageType.Binary, true, default);
-            //await shell.CloseAsync(WebSocketCloseStatus.NormalClosure, "Transferred", default(CancellationToken))
         }
         
         public async Task<(string ContainerId, int Port)> Start(string imageName, string dockerPath)
         {
-
+            var tarId = await SendDockerContextToBuilder(dockerPath);
+            await BuildRemoteContainer(tarId, imageName);
+            
             return ("", 0);
         }
 
@@ -98,6 +94,47 @@ namespace MethodContainerizer.Kubernetes
             await _dockerClient.Containers.RemoveContainerAsync(name, new ContainerRemoveParameters());
 
             return true;
+        }
+
+        private async Task<string> SendDockerContextToBuilder(string tarFilePath)
+        {
+            var tarId = Guid.NewGuid().ToString().Replace("-", "");
+            var tarBytes = await File.ReadAllBytesAsync(tarFilePath);
+
+            // Transfer TAR file
+            await ExecuteBuildAgentCommand(new[]
+                {"/bin/sh", "-c", $"echo {Convert.ToBase64String(tarBytes)} | base64 -d > /home/{tarId}.tar"});
+            
+            // Create directory
+            await ExecuteBuildAgentCommand(new[]{"mkdir", $"/home/{tarId}"});
+            
+            // Extract into directory
+            await ExecuteBuildAgentCommand(new[] {"tar", "-xvf", $"/home/{tarId}.tar", "-C", $"/home/{tarId}"});
+            
+            // Delete TAR
+            await ExecuteBuildAgentCommand(new[] {"rm", "-rf", $"/home/{tarId}.tar"});
+            
+            return tarId;
+        }
+
+        private async Task BuildRemoteContainer(string tarId, string imageName)
+        {
+            await ExecuteBuildAgentCommand(new[] {"docker", "build", $"/home/{tarId}", "-t", imageName});
+        }
+
+        private async Task ExecuteBuildAgentCommand(string[] commandArguments)
+        {
+            var shell = await _kubernetesClient.WebSocketNamespacedPodExecAsync(
+                _buildPod.Name(), 
+                _buildPod.Namespace(), 
+                commandArguments,
+                stderr: true, 
+                stdout: true,
+                tty: true,
+                container: _buildPod.Spec.Containers.First().Name
+            );
+            
+            await shell.CloseAsync(WebSocketCloseStatus.NormalClosure, "Command complete", default(CancellationToken));
         }
     }
 

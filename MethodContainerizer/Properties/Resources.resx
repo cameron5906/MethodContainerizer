@@ -152,7 +152,6 @@ ENTRYPOINT ["dotnet", "Runner.dll"]</value>
 using Newtonsoft.Json.Linq;
 using System.Linq;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
 using System.Threading.Tasks;
@@ -254,6 +253,7 @@ namespace IsolatedMethod.Runner
         {
 
             services.AddControllers();
+        }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
@@ -279,12 +279,12 @@ namespace IsolatedMethod.Runner
             if(authHeader is { } &amp;&amp; authHeader.First().StartsWith("Bearer")) {
                 var bearerToken = authHeader.First().Substring("Bearer ".Length).Trim();
                 if(bearerToken != "{BearerToken}") {
-                    return new StatusCode(400, "Invalid bearer");
+                    return new StatusCodeResult(400);
                 }
             }
             else
             {
-                return new StatusCode(400, "Authorization header not found");
+                return new StatusCodeResult(400);
             }</value>
   </data>
 </root>
