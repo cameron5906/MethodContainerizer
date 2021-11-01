@@ -18,6 +18,7 @@
     <PackageReference Include="Lokad.ILPack" Version="0.1.7" />
     <PackageReference Include="Microsoft.AspNetCore.Hosting.Abstractions" Version="2.2.0" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="5.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="5.0.0" />
     <PackageReference Include="Microsoft.Extensions.Options" Version="5.0.0" />
     <PackageReference Include="SharpCompress" Version="0.30.0" />
     <PackageReference Include="System.Reflection" Version="4.3.0" />
