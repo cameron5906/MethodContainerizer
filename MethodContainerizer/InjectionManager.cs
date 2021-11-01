@@ -5,12 +5,15 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using MethodContainerizer.Models;
 
 namespace MethodContainerizer
 {
     public static class InjectionManager
     {
         private static IList<MethodInfo> _injectionMethods = new List<MethodInfo>();
+        private static IDictionary<string, ContainerizedMethodOptions> _injectedMethodOptions =
+            new Dictionary<string, ContainerizedMethodOptions>();
         private static IOrchestrator _orchestrator;
 
         public static void SetOrchestrationManager(IOrchestrator orchestrator)
@@ -21,26 +24,50 @@ namespace MethodContainerizer
         /// <summary>
         /// Adds a method to the list of methods to export
         /// </summary>
-        public static void AddMethodToInject(MethodInfo meth)
+        internal static void AddMethodToInject(MethodInfo meth)
         {
             _injectionMethods.Add(meth);
+        }
+
+        internal static void AddMethodInjectionOptions(MethodInfo meth, ContainerizedMethodOptions opts)
+        {
+            _injectedMethodOptions.Add(meth.Name, opts);
+        }
+
+        internal static ContainerizedMethodOptions GetMethodOptions(MethodInfo meth)
+        {
+            return _injectedMethodOptions.ContainsKey(meth.Name) ? _injectedMethodOptions[meth.Name] : null;
         }
 
         /// <summary>
         /// Begins exporting and injecting replacements for the indicated methods
         /// </summary>
-        public static void BuildContainers()
+        internal static void BuildContainers()
         {
             if (_injectionMethods == null)
-                throw new Exception("No RPC methods have been defined");
+                throw new Exception("No containerized methods have been defined");
 
             foreach (var method in _injectionMethods)
             {
+                var containerizationOptions = _injectedMethodOptions[method.Name];
                 InjectMethodProxy(method);
-                BuildAndStartMethodContainer(method);
+
+                if (!containerizationOptions.CreateAsNeeded)
+                {
+                    for (var i = 0; i < containerizationOptions.MinimumAvailable; i++)
+                    {
+                        BuildContainer(method, !containerizationOptions.IsOpen, containerizationOptions.CustomBearer);
+                    }
+                }
             }
 
-            Console.WriteLine("Injection complete");
+            _orchestrator.CleanUp().GetAwaiter().GetResult();
+        }
+
+        internal static (string ContainerId, string Hostname, int Port) BuildContainer(MethodInfo method, bool requireAuthorization,
+            string bearerToken)
+        {
+            return BuildAndStartMethodContainer(method, requireAuthorization, bearerToken);
         }
 
         /// <summary>
@@ -122,15 +149,19 @@ namespace MethodContainerizer
         /// Builds a new assembly containing only method and its operational dependencies, builds a docker image, runs it, and tracks its API information
         /// </summary>
         /// <param name="method">The method to build the container for</param>
-        private static void BuildAndStartMethodContainer(MethodInfo method)
+        private static (string ContainerId, string Hostname, int Port) BuildAndStartMethodContainer(MethodInfo method,
+            bool requireAuthorization, string bearerToken)
         {
             var generatedAssembly = ShallowAssemblyBuilder.GenerateShallowMethodAssembly(method);
-            var tarPath = DockerfileBuilder.BuildDockerContext(generatedAssembly, method);
+            var contextOutput =
+                DockerfileBuilder.BuildDockerContext(generatedAssembly, method, requireAuthorization, bearerToken);
             var imageName = $"{method.DeclaringType.Name}-{method.Name}".ToLower();
 
-            var result = _orchestrator.Start(imageName, tarPath).GetAwaiter().GetResult();
+            var result = _orchestrator.Start(imageName, contextOutput.TarPath, contextOutput.AssemblyByteLength).GetAwaiter().GetResult();
 
-            MethodProxyManager.AddRemoteMethod(result.ContainerId, method.Name, result.Port);
+            MethodProxyManager.AddRemoteMethod(result.ContainerId, method.Name, result.Hostname, result.Port);
+
+            return result;
         }
     }
 }

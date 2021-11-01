@@ -5,7 +5,7 @@ using System.Runtime.InteropServices;
 
 namespace MethodContainerizer.Extensions
 {
-    public static class MarshalExtensions
+    internal static class MarshalExtensions
     {
         public static void Becomes(this MethodInfo origin, MethodInfo target)
         {

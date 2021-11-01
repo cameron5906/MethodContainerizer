@@ -103,7 +103,7 @@ namespace MethodContainerizer
 
             // The below code generates a Program class and constructs a Main method that calls the root method that is being exported
             var methodParams = methodInfo.GetParameters();
-            var prog = module.DefineType("KubeRPC.Program", TypeAttributes.Public | TypeAttributes.Class, null);
+            var prog = module.DefineType("MethodContainerizer.Program", TypeAttributes.Public | TypeAttributes.Class, null);
             var mainFunc = prog.DefineMethod(
                 "Main", 
                 MethodAttributes.Public, 
@@ -219,7 +219,14 @@ namespace MethodContainerizer
                             else if (instruction.Operand is MethodInfo methodInfo1)
                             {
                                 var parent = GetOrGenerateType(module, methodInfo1.DeclaringType, generatedTypes);
-                                il.Emit(instruction.Code, parent.GetMethod(methodInfo1.Name, methodInfo1.GetParameters().Select(x => GetOrGenerateType(module, x.ParameterType, generatedTypes)).ToArray()));
+                                il.Emit(
+                                    instruction.Code, 
+                                    parent.GetMethod(
+                                        methodInfo1.Name, methodInfo1.GetParameters().Select(x => 
+                                            GetOrGenerateType(module, x.ParameterType, generatedTypes)
+                                        ).ToArray()
+                                    )
+                                );
                             }
                             else if(instruction.Operand is FieldInfo fieldInfo)
                             {
@@ -246,8 +253,8 @@ namespace MethodContainerizer
                     Type propType = GetOrGenerateType(module, property.PropertyType, generatedTypes);
 
                     var dynamicProperty = dynamicType.DefineProperty(property.Name, property.Attributes, propType, null);
-                    var getMethod = property.GetGetMethod();
-                    var setMethod = property.GetSetMethod();
+                    var getMethod = property.GetMethod;
+                    var setMethod = property.SetMethod;
 
                     var fieldBuilder = dynamicType.DefineField(property.Name.ToCamelCase(), propType, FieldAttributes.Private);
 
@@ -293,7 +300,7 @@ namespace MethodContainerizer
                 {
                     return dynamicType.CreateType();
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
                     return null;
                 }

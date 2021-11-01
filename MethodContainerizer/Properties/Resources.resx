@@ -148,13 +148,10 @@ ENTRYPOINT ["dotnet", "Runner.dll"]</value>
 }</value>
   </data>
   <data name="RunnerEntrypoint" xml:space="preserve">
-    <value>using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
+      <value>using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json.Linq;
-using System;
-using System.Collections.Generic;
-using System.IO;
 using System.Linq;
+using System.IO;
 using System.Reflection;
 using System.Runtime.Serialization;
 using System.Threading.Tasks;
@@ -165,8 +162,10 @@ namespace IsolatedMethod.Runner
     public class Entrypoint : Controller
     {
         [HttpPost]
-        public async Task&lt;object&gt; Execute()
+        public async Task&lt;IActionResult&gt; Execute()
         {
+           {AuthorizationCode} 
+            
             using var bodyStream = new StreamReader(HttpContext.Request.Body);
             var payloadJson = await bodyStream.ReadToEndAsync();
 
@@ -180,11 +179,11 @@ namespace IsolatedMethod.Runner
             var programInstance = FormatterServices.GetUninitializedObject(program);
 
             var programArgs = main.GetParameters().Select(p =&gt;
-             {
-                 return inputParams[p.Position].ToObject(p.ParameterType);
-             });
+            {
+                return inputParams[p.Position].ToObject(p.ParameterType);
+            });
 
-             return main.Invoke(programInstance, programArgs.ToArray());
+            return new JsonResult(main.Invoke(programInstance, programArgs.ToArray()));
         }
     }
 }</value>
@@ -232,7 +231,7 @@ namespace IsolatedMethod.Runner
 &lt;/Project&gt;</value>
   </data>
   <data name="RunnerStartup" xml:space="preserve">
-    <value>using Microsoft.AspNetCore.Builder;
+      <value>using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -273,5 +272,19 @@ namespace IsolatedMethod.Runner
         }
     }
 }</value>
+  </data>
+  <data name="RunnerAuthorizationCode" xml:space="preserve">
+      <value>var authHeader = Request.Headers["Authorization"];
+
+            if(authHeader is { } &amp;&amp; authHeader.First().StartsWith("Bearer")) {
+                var bearerToken = authHeader.First().Substring("Bearer ".Length).Trim();
+                if(bearerToken != "{BearerToken}") {
+                    return new StatusCodeResult(400);
+                }
+            }
+            else
+            {
+                return new StatusCodeResult(400);
+            }</value>
   </data>
 </root>

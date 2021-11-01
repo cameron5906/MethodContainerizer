@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System;
 using System.Linq.Expressions;
+using MethodContainerizer.Models;
 
 namespace MethodContainerizer.Extensions
 {
@@ -13,6 +14,11 @@ namespace MethodContainerizer.Extensions
         /// </summary>
         public static IServiceCollection BuildContainers(this IServiceCollection services)
         {
+            services.Configure<HostOptions>(opts =>
+            {
+                opts.ShutdownTimeout = TimeSpan.FromSeconds(30);
+            });
+            
             InjectionManager.BuildContainers();
 
             return services;
@@ -24,13 +30,34 @@ namespace MethodContainerizer.Extensions
         /// <typeparam name="T"></typeparam>
         /// <param name="services"></param>
         /// <param name="expression">A reference to the method to add. Use "default" for parameters</param>
-        /// <param name="minAvailable">The minimum amount of APIs to have at one time</param>
-        public static IServiceCollection ContainerizeMethod<T>(this IServiceCollection services, Expression<Func<T, object>> expression, int minAvailable) where T : class
+        /// <param name="optionsBuilder">An action used to build specific properties of the containerized method</param>
+        public static IServiceCollection ContainerizeMethod<T>(this IServiceCollection services,
+            Expression<Func<T, object>> expression,
+            Action<ContainerizedMethodOptionsBuilder> optionsBuilder = null) where T : class
         {
-            if(expression.Body is MethodCallExpression methodCallExpression)
+            // Do nothing if a valid method was not found in the expression (TODO: Throw?)
+            if (expression.Body is not MethodCallExpression methodCallExpression) return services;
+            
+            // Add a record to inject the method
+            InjectionManager.AddMethodToInject(methodCallExpression.Method);
+
+            // If no additional options, return now
+            if (optionsBuilder is null)
             {
-                InjectionManager.AddMethodToInject(methodCallExpression.Method);
+                InjectionManager.AddMethodInjectionOptions(methodCallExpression.Method, new ContainerizedMethodOptions
+                {
+                    MinimumAvailable = 1,
+                    CreateAsNeeded = false,
+                    IsOpen = false,
+                    CustomBearer = Guid.NewGuid().ToString()
+                });
             }
+                
+            // Otherwise, build the options and record them
+            var optionsBuilderInst = new ContainerizedMethodOptionsBuilder();
+            optionsBuilder(optionsBuilderInst);
+            var options = optionsBuilderInst.Build();   
+            InjectionManager.AddMethodInjectionOptions(methodCallExpression.Method, options);
 
             return services;
         }
@@ -39,13 +66,10 @@ namespace MethodContainerizer.Extensions
         /// Registers an application lifecycle hook to kill all method APIs when the main application begins shutting down
         /// </summary>
         public static IApplicationBuilder TerminateMethodContainersOnExit(this IApplicationBuilder builder)
-        {
+        {   
             var appLifetime = builder.ApplicationServices.GetRequiredService<IApplicationLifetime>();
 
-            appLifetime.ApplicationStopping.Register(() =>
-            {
-                MethodProxyManager.ShutdownAPIs();
-            });
+            appLifetime.ApplicationStopping.Register(MethodProxyManager.ShutdownAllApis);
 
             return builder;
         }
