@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System;
 
 namespace MethodContainerizer.Sample
 {
@@ -23,7 +24,6 @@ namespace MethodContainerizer.Sample
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-
             services.AddControllers();
 
             services
@@ -31,12 +31,15 @@ namespace MethodContainerizer.Sample
                 .AddSingleton<PostService>()
                 .AddTransient<UserRepository>()
                 .AddTransient<PostRepository>()
-                .ContainerizeMethod<UserService>(x => x.CreateUser(default), opts => 
+                .ContainerizeMethod<UserService>(serv => serv.CreateUser(default), opts =>
                     opts
-                        .SetMinimumAvailable(3)
+                        .SetMinimumAvailable(4)
                         .UseCustomBearerToken("mytesttoken")
                 )
-                .UseKubernetesOrchestration("", "")
+                .UseKubernetesOrchestration(opts =>
+                    opts.SetDockerHubRegistry("cameron5906", Environment.GetEnvironmentVariable("DOCKER_HUB_TOKEN"))
+                        .SetContext("docker-desktop")
+                )
                 .BuildContainers();
         }
 
