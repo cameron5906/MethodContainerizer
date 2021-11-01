@@ -21,7 +21,7 @@ namespace MethodContainerizer.Docker
                 .CreateClient();
         }
 
-        public async Task<(string ContainerId, int Port)> Start(string imageName, string dockerPath)
+        public async Task<(string ContainerId, string Hostname, int Port)> Start(string imageName, string dockerPath, int assemblyBytes)
         {
             var tarReader = File.OpenRead(dockerPath);
 
@@ -61,7 +61,7 @@ namespace MethodContainerizer.Docker
 
             await _dockerClient.Containers.StartContainerAsync(container.ID, new ContainerStartParameters());
 
-            return (container.ID, hostPort);
+            return (container.ID, "localhost", hostPort);
         }
 
         public async Task<bool> Shutdown(string name)
@@ -74,6 +74,12 @@ namespace MethodContainerizer.Docker
             await _dockerClient.Containers.RemoveContainerAsync(name, new ContainerRemoveParameters());
 
             return true;
+        }
+
+        public async Task CleanUp()
+        {
+            // Nothing to do
+            await Task.CompletedTask;
         }
     }
 
