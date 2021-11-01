@@ -60,9 +60,11 @@ namespace MethodContainerizer
                     }
                 }
             }
+
+            _orchestrator.CleanUp().GetAwaiter().GetResult();
         }
 
-        internal static (string ContainerId, int Port) BuildContainer(MethodInfo method, bool requireAuthorization,
+        internal static (string ContainerId, string Hostname, int Port) BuildContainer(MethodInfo method, bool requireAuthorization,
             string bearerToken)
         {
             return BuildAndStartMethodContainer(method, requireAuthorization, bearerToken);
@@ -147,17 +149,17 @@ namespace MethodContainerizer
         /// Builds a new assembly containing only method and its operational dependencies, builds a docker image, runs it, and tracks its API information
         /// </summary>
         /// <param name="method">The method to build the container for</param>
-        private static (string ContainerId, int Port) BuildAndStartMethodContainer(MethodInfo method,
+        private static (string ContainerId, string Hostname, int Port) BuildAndStartMethodContainer(MethodInfo method,
             bool requireAuthorization, string bearerToken)
         {
             var generatedAssembly = ShallowAssemblyBuilder.GenerateShallowMethodAssembly(method);
-            var tarPath =
+            var contextOutput =
                 DockerfileBuilder.BuildDockerContext(generatedAssembly, method, requireAuthorization, bearerToken);
             var imageName = $"{method.DeclaringType.Name}-{method.Name}".ToLower();
 
-            var result = _orchestrator.Start(imageName, tarPath).GetAwaiter().GetResult();
+            var result = _orchestrator.Start(imageName, contextOutput.TarPath, contextOutput.AssemblyByteLength).GetAwaiter().GetResult();
 
-            MethodProxyManager.AddRemoteMethod(result.ContainerId, method.Name, result.Port);
+            MethodProxyManager.AddRemoteMethod(result.ContainerId, method.Name, result.Hostname, result.Port);
 
             return result;
         }

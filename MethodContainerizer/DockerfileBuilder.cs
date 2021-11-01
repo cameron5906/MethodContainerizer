@@ -6,6 +6,8 @@ using System.Reflection;
 using SharpCompress.Archives;
 using SharpCompress.Common;
 using SharpCompress.Writers;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace MethodContainerizer
 {
@@ -17,7 +19,7 @@ namespace MethodContainerizer
         /// <param name="assembly">Assembly to be dockerized</param>
         /// <param name="method">The method that this assembly is made for</param>
         /// <returns>The filesystem path to the build context TAR</returns>
-        public static string BuildDockerContext(Assembly assembly, MethodInfo method, bool requireAuthorization,
+        public static (string TarPath, int AssemblyByteLength) BuildDockerContext(Assembly assembly, MethodInfo method, bool requireAuthorization,
             string bearerToken)
         {
             // TODO: Clean up post-run
@@ -25,14 +27,14 @@ namespace MethodContainerizer
             var jobId = "methodcontainerizer-" + Guid.NewGuid().ToString().Replace("-", "");
             var jobPath = Path.Combine(tempPath, jobId);
 
-            GenerateBuildFiles(assembly, jobPath, requireAuthorization, bearerToken);
-            return GenerateTar(jobPath);
+            var byteLength = GenerateBuildFiles(assembly, jobPath, requireAuthorization, bearerToken);
+            return (GenerateTar(jobPath), byteLength);
         }
 
         /// <summary>
         /// Builds out a new Docker build context with a C# project to import and run the method assembly
         /// </summary>
-        private static void GenerateBuildFiles(Assembly assembly, string jobPath, bool requireAuthorization,
+        private static int GenerateBuildFiles(Assembly assembly, string jobPath, bool requireAuthorization,
             string bearerToken)
         {
             Directory.CreateDirectory(jobPath);
@@ -68,6 +70,8 @@ namespace MethodContainerizer
             }
 
             File.WriteAllBytes(Path.Combine(jobPath, "program.dll"), assemblyBytes);
+
+            return assemblyBytes.Length;
         }
 
         /// <summary>
