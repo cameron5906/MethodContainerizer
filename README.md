@@ -19,16 +19,64 @@ Add **MethodContainerizer** and **MethodContainerizer.Docker** to your project.
 ```csharp
 services
     .AddSingleton<SomeComplexJob>()
-    .ContainerizeMethod<SomeComplexJob>(x => x.Start(default), 1)
+    .ContainerizeMethod<SomeComplexJob>(x => x.Start(default))
     .UseDockerOrchestration()
     .BuildContainers();
 ```
 
-If you would like to make sure all containers are terminated when the host closes, add the following:
+
+
+##### If you would like to make sure all containers are terminated when the host closes, add the following:
 
 ```csharp
 app.TerminateMethodContainersOnExit();
 ```
+
+
+
+##### By default, method containers use authentication with a randomly generated Bearer token. You may disable authentication altogether:
+
+```csharp
+services
+  .ContainerizeMethod<SomeComplexJob>(x => x.Start(default), opts => {
+    opts.DoNotRequireAuthorization()
+  })
+```
+
+
+
+##### Or, to change the bearer token:
+
+```csharp
+services
+  .ContainerizeMethod<SomeComplexJob>(x => x.Start(default), opts => {
+    opts.UseCustomBearerToken("mybearer")
+  })
+```
+
+
+
+##### To set up a minimum amount of containers per each method for load balancing purposes:
+
+```csharp
+services
+  .ContainerizeMethod<SomeComplexJob>(x => x.Start(default), opts => {
+    opts.SetMinimumAvailable(3)
+  })
+```
+
+
+
+##### Or, if you want each invocation of the method to create a new container that is destroyed once the method returns:
+
+```csharp
+services
+  .ContainerizeMethod<SomeComplexJob>(x => x.Start(default), opts => {
+    opts.AsNeeded()
+  })
+```
+
+
 
 
 
@@ -49,5 +97,5 @@ When you mark a method to be containerized, a lot happens behind the scenes.
 - Add support for building of Dockerfiles remotely
 - Docker Swarm
 - Kubernetes
-- Load monitoring / Multiple instances
+- Load balancing
 - Analytics / Monitoring

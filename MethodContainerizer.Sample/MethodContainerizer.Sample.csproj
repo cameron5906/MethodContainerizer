@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\MethodContainerizer.Docker\MethodContainerizer.Docker.csproj" />
+    <ProjectReference Include="..\MethodContainerizer.Kubernetes\MethodContainerizer.Kubernetes.csproj" />
     <ProjectReference Include="..\MethodContainerizer\MethodContainerizer.csproj" />
   </ItemGroup>
 

@@ -1,4 +1,5 @@
-﻿using MethodContainerizer.Sample.Models;
+﻿using System.Linq;
+using MethodContainerizer.Sample.Models;
 using MethodContainerizer.Sample.Services;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
@@ -22,7 +23,7 @@ namespace MethodContainerizer.Sample.Controllers
         public async Task<UserModel> GetAString_Controller()
         {
             await Task.CompletedTask;
-
+            var a = StatusCode(200);
             return _userService.CreateUser(new UserModel() { Username = "Cameron" });
         }
 
