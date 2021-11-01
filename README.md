@@ -32,6 +32,52 @@ app.TerminateMethodContainersOnExit();
 
 
 
+```csharp
+services
+  .ContainerizeMethod<SomeComplexJob>(x => x.Start(default), opts => {
+    opts.AsNeeded()
+  })
+```
+
+
+
+## Orchestration
+
+##### To use with a local Docker instance:
+
+```csharp
+services
+    .UseDockerOrchestration();
+```
+
+
+
+##### To use with Kubernetes with Docker Hub as a container registry:
+
+```csharp
+services
+    .UseKubernetesOrchestration(opts =>
+        opts.SetDockerHubRegistry("username", "password")
+            .SetContext("docker-desktop")
+    )
+```
+
+
+
+##### To use with Kubernetes with a custom container registry:
+
+```csharp
+services
+    .UseKubernetesOrchestration(opts =>
+    	opts.SetPrivateContainerRegistry("myregistry.io:5000", "username", "password")
+            .SetContext("docker-desktop")
+    )
+```
+
+
+
+
+
 ## How it works
 
 When you mark a method to be containerized, a lot happens behind the scenes. 
