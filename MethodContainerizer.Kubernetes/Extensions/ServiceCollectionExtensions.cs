@@ -1,12 +1,17 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using System;
 
 namespace MethodContainerizer.Kubernetes.Extensions
 {
     public static class ServiceCollectionExtensions
     {
-        public static IServiceCollection UseKubernetesOrchestration(this IServiceCollection services, string k8s, string containerRegistry)
+        public static IServiceCollection UseKubernetesOrchestration(this IServiceCollection services, Action<KubernetesOptionsBuilder> buildConfig)
         {
-            var orchestrationManager = new KubernetesManager(k8s, containerRegistry);
+            var configBuilder = new KubernetesOptionsBuilder();
+            buildConfig(configBuilder);
+            var config = configBuilder.Build();
+
+            var orchestrationManager = new KubernetesManager(config);
 
             orchestrationManager.PrepareDockerDaemon().GetAwaiter().GetResult();
             
